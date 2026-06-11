@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title><%= title %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- Google Fonts 日系無印極簡風：Noto Sans JP + Zen Maru Gothic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Zen+Maru+Gothic:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+
+  <!-- Chart.js for dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="min-h-screen flex flex-col">
+  <div class="flex-1 flex flex-col">
+    <!-- Header -->
+    <header class="px-4 pt-4 pb-2 bg-stone-100">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="section-title">BABY LOG</div>
+          <h1 class="zen-rounded text-2xl font-medium mt-1">食 · 瞓 · 痾 小助手</h1>
+          <p class="text-[11px] text-stone-500 mt-1">依照月齡參考模板與歴史記錄，預測下一次食瞓痾時間。</p>
+        </div>
+        <div class="flex flex-col items-end text-right">
+          <span class="chip mb-1" id="baby-age-chip">尚未設定生日</span>
+          <button id="exportCsvBtn" class="muji-btn-outline flex items-center gap-1 text-[11px]">
+            <i class="fa fa-download"></i><span>CSV</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Top Tabs -->
+    <nav class="mt-2 px-4">
+      <div class="muji-card flex items-center justify-between px-2 py-1">
+        <button data-tab="setup" class="tab-btn flex-1 flex flex-col items-center py-2 text-xs tab-active">
+          <span class="mb-1"><i class="fa fa-cog"></i></span>
+          <span>SETUP</span>
+        </button>
+        <button data-tab="plan" class="tab-btn flex-1 flex flex-col items-center py-2 text-xs tab-inactive">
+          <span class="mb-1"><i class="fa fa-calendar-o"></i></span>
+          <span>PLAN</span>
+        </button>
+        <button data-tab="record" class="tab-btn flex-1 flex flex-col items-center py-2 text-xs tab-inactive">
+          <span class="mb-1"><i class="fa fa-pencil-square-o"></i></span>
+          <span>RECORD</span>
+        </button>
+        <button data-tab="forecast" class="tab-btn flex-1 flex flex-col items-center py-2 text-xs tab-inactive">
+          <span class="mb-1"><i class="fa fa-line-chart"></i></span>
+          <span>FORECAST</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto px-4 pb-24 pt-3 space-y-4">
+
+      <!-- SETUP TAB -->
+      <section id="tab-setup" class="space-y-3">
+        <div class="muji-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="section-title">BABY PROFILE</div>
+              <p class="text-xs text-stone-500 mt-1">設定生日，系統會依照月齡載入對應的參考作息。</p>
+            </div>
+            <i class="fa fa-leaf text-stone-300 text-2xl"></i>
+          </div>
+
+          <div class="space-y-2">
+            <label class="block text-[11px] text-stone-500 mb-1">嬰兒出生日期</label>
+            <input id="babyBirthDate" type="date" class="input-base text-xs" />
+            <p class="text-[11px] text-stone-500 mt-1" id="babyAgeText">會依照月齡載入 0–12 個月的預設參考模板。</p>
+          </div>
+
+          <div class="pt-1">
+            <div class="mb-2">
+              <span class="text-[11px] text-stone-500">目前月齡對應模板</span>
+              <div id="currentRefMonthLabel" class="text-xs text-stone-800 mt-0.5">尚未計算</div>
+            </div>
+            <div class="mb-2">
+              <span class="text-[11px] text-stone-500">特點</span>
+              <div id="currentRefFeatureLabel" class="text-xs text-stone-600 mt-0.5 leading-relaxed">—</div>
+            </div>
+            <div class="text-right">
+              <button id="saveBabyProfileBtn" class="muji-btn-primary text-[11px]">
+                儲存設定
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="muji-card p-4 space-y-3">
+          <div class="flex items-center justify-between mb-2">
+            <span class="section-title">REFERENCE PLAN</span>
+            <div class="flex gap-2">
+              <button id="loadReferenceBtn" class="muji-btn-outline text-[11px] flex items-center gap-1">
+                <i class="fa fa-refresh"></i><span>預設</span>
+              </button>
+              <button id="reloadRefForAgeBtn" class="muji-btn-outline text-[11px]">
+                月齡模板
+              </button>
+            </div>
+          </div>
+          <p class="text-[11px] text-stone-500 mb-2">
+            參考嬰兒食瞓痾記錄（單日樣板）：會根據月齡選擇餵食次數與大約奶量，你仍可自行微調。
+          </p>
+
+          <!-- 參考作息表 -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-[11px] text-left text-stone-700">
+              <thead>
+                <tr class="border-b border-stone-200">
+                  <th class="py-1 pr-2">時間</th>
+                  <th class="py-1 pr-2">食</th>
+                  <th class="py-1 pr-2">入睡</th>
+                  <th class="py-1 pr-2">起床</th>
+                  <th class="py-1 pr-2">痾屎</th>
+                </tr>
+              </thead>
+              <tbody id="referenceTableBody">
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="flex justify-end pt-2">
+            <button id="saveReferenceBtn" class="muji-btn-primary text-[11px]">
+              儲存參考模板
+            </button>
+          </div>
+          
+          <p class="text-[10px] text-stone-400 mt-1">
+            範例奶量與間隔依各月齡建議範圍「自創」設計，用作節奏參考，非醫療建議。
+          </p>
+        </div>
+      </section>
+
+      <!-- PLAN TAB -->
+      <section id="tab-plan" class="hidden space-y-3">
+        <div class="muji-card p-4">
+          <div class="section-title mb-1">TODAY vs DAILY PLAN</div>
+          <p class="text-xs text-stone-500 mb-3">
+            今日實際記錄與每日計畫的對比圖表。
+          </p>
+
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] text-stone-500" id="todayDateLabel"></span>
+            <button id="refreshPlanBtn" class="muji-btn-outline text-[11px] flex items-center gap-1">
+              <i class="fa fa-clock-o"></i><span>重整圖表</span>
+            </button>
+          </div>
+
+          <!-- Dashboard Chart -->
+          <div class="mt-4 bg-white p-3 rounded-xl">
+            <canvas id="planChart" style="max-height: 300px;"></canvas>
+          </div>
+
+          <!-- Timeline View -->
+          <div id="planTimeline" class="mt-4 space-y-3"></div>
+        </div>
+
+        <div class="muji-card p-4">
+          <div class="section-title mb-1">TIPS</div>
+          <p class="text-xs text-stone-500">
+            若月齡改變，可在 SETUP 分頁重新設定生日與參考模板，讓之後的預測更貼近目前狀態。
+          </p>
+        </div>
+      </section>
+
+      <!-- RECORD TAB -->
+      <section id="tab-record" class="hidden space-y-3">
+        <div class="muji-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="section-title mb-1">RECORD INPUT</div>
+              <p class="text-xs text-stone-500">
+                新增嬰兒食瞓痾記錄。
+              </p>
+            </div>
+            <i class="fa fa-book text-stone-300 text-2xl"></i>
+          </div>
+
+          <div class="border-t border-dashed border-stone-200 pt-3 space-y-3">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] text-stone-500">新增一筆記錄</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] text-stone-500 mb-1">日期</label>
+                <input id="recordDate" type="date" class="input-base text-xs" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-stone-500 mb-1">時間</label>
+                <input id="recordTime" type="time" step="300" class="input-base text-xs" />
+              </div>
+            </div>
+
+            <!-- 食 Section -->
+            <div class="muji-card p-3 bg-stone-50">
+              <div class="text-[11px] font-medium text-stone-700 mb-2">食</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] text-stone-500 mb-1">埋身(L) mins</label>
+                  <input id="recordFeedLeft" type="number" min="0" placeholder="0" class="input-base text-xs" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-stone-500 mb-1">埋身(R) mins</label>
+                  <input id="recordFeedRight" type="number" min="0" placeholder="0" class="input-base text-xs" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-stone-500 mb-1">人奶 ml</label>
+                  <input id="recordFeedBreastMilk" type="number" min="0" placeholder="0" class="input-base text-xs" />
+                </div>
+                <div>
+                  <label class="block text-[10px] text-stone-500 mb-1">奶粉 ml</label>
+                  <input id="recordFeedFormula" type="number" min="0" placeholder="0" class="input-base text-xs" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 瞓 / 沖涼 Section -->
+            <div class="muji-card p-3 bg-stone-50">
+              <div class="text-[11px] font-medium text-stone-700 mb-2">瞓 / 沖涼</div>
+              <div class="grid grid-cols-3 gap-3">
+                <div class="flex items-center gap-2">
+                  <input id="recordSleepStart" type="checkbox" class="w-4 h-4 rounded border-stone-300" />
+                  <label class="text-[11px] text-stone-700">入睡</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="recordSleepEnd" type="checkbox" class="w-4 h-4 rounded border-stone-300" />
+                  <label class="text-[11px] text-stone-700">起床</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="recordBath" type="checkbox" class="w-4 h-4 rounded border-stone-300" />
+                  <label class="text-[11px] text-stone-700">沖涼</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- 便便 / 尿尿 Section -->
+            <div class="muji-card p-3 bg-stone-50">
+              <div class="text-[11px] font-medium text-stone-700 mb-2">便便 / 尿尿</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] text-stone-500 mb-1">便便</label>
+                  <select id="recordPoop" class="input-base text-xs">
+                    <option value="">--</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] text-stone-500 mb-1">尿尿</label>
+                  <select id="recordPee" class="input-base text-xs">
+                    <option value="">--</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- 備注 Section -->
+            <div>
+              <label class="block text-[11px] text-stone-500 mb-1">備注</label>
+              <input id="recordNotes" type="text" maxlength="20" placeholder="最多 20 字" class="input-base text-xs" />
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button id="clearRecordFormBtn" class="muji-btn-outline text-[11px]">
+                清除
+              </button>
+              <button id="addRecordBtn" class="muji-btn-primary text-[11px] flex items-center gap-1">
+                <i class="fa fa-plus"></i><span>加入記錄</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="muji-card p-4 space-y-2">
+          <div class="flex items-center justify-between mb-1">
+            <span class="section-title">RECORD HISTORY LIST</span>
+            <select id="recordDateFilter" class="input-base text-[11px] max-w-[48%]">
+              <option value="">全部日期</option>
+            </select>
+          </div>
+          <p class="text-[11px] text-stone-500 mb-2">
+            點擊卡片可編輯內容；左右滑動可查看更多欄位。資料存於 SQLite 資料庫。
+          </p>
+
+          <div id="recordList" class="space-y-2 max-h-[320px] overflow-y-auto"></div>
+        </div>
+      </section>
+
+      <!-- FORECAST TAB -->
+      <section id="tab-forecast" class="hidden space-y-3">
+        <div class="muji-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="section-title mb-1">TODAY'S FORECAST</div>
+              <p class="text-xs text-stone-500">
+                根據當前月齡參考模板與歷史記錄差異，預測今日食瞓痾時間。
+              </p>
+            </div>
+            <i class="fa fa-pagelines text-stone-300 text-2xl"></i>
+          </div>
+
+          <div class="flex items-center justify-between mt-1">
+            <span class="chip" id="forecastAgeChip">請先設定生日與參考模板</span>
+            <button id="runForecastBtn" class="muji-btn-primary text-[11px] flex items-center gap-1">
+              <i class="fa fa-magic"></i><span>更新預測</span>
+            </button>
+          </div>
+
+          <p class="text-[11px] text-stone-500 mt-2">
+            簡化邏輯：以最近 3 日實際與「月齡專屬參考模板」的時間差（分鐘）求平均，套用到今日參考模板上。
+          </p>
+        </div>
+
+        <div class="muji-card p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="section-title">FORECAST TABLE</span>
+            <button id="saveForecastBtn" class="muji-btn-outline text-[11px] flex items-center gap-1">
+              <i class="fa fa-save"></i><span>保存今日預測</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-stone-500">
+            保存後會連同日期寫入資料庫，可在 PLAN 中對照。
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-[11px] text-left text-stone-700">
+              <thead>
+                <tr class="border-b border-stone-200">
+                  <th class="py-1 pr-2">時間</th>
+                  <th class="py-1 pr-2">食</th>
+                  <th class="py-1 pr-2">入睡</th>
+                  <th class="py-1 pr-2">起床</th>
+                  <th class="py-1 pr-2">痾屎</th>
+                </tr>
+              </thead>
+              <tbody id="forecastTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-2 text-[11px] text-stone-500 space-y-1">
+            <div>差異計算概念：</div>
+            <ul class="list-disc list-inside">
+              <li>同一月齡的最近 3 日，取「實際 - 參考」時間差。</li>
+              <li>取平均差異（分鐘），平移參考時間作為預測。</li>
+              <li>若歷史不足，則直接使用該月齡參考模板。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Nav -->
+    <footer class="fixed bottom-0 left-0 right-0 bg-stone-100 border-t border-stone-200">
+      <div class="max-w-[480px] mx-auto">
+        <div class="flex justify-between px-6 py-2 text-[11px] text-stone-500">
+          <button data-tab="setup" class="tab-btn flex flex-col items-center tab-active">
+            <i class="fa fa-cog text-sm mb-0.5"></i>
+            <span>SETUP</span>
+          </button>
+          <button data-tab="plan" class="tab-btn flex flex-col items-center tab-inactive">
+            <i class="fa fa-calendar-o text-sm mb-0.5"></i>
+            <span>PLAN</span>
+          </button>
+          <button data-tab="record" class="tab-btn flex flex-col items-center tab-inactive">
+            <i class="fa fa-pencil-square-o text-sm mb-0.5"></i>
+            <span>RECORD</span>
+          </button>
+          <button data-tab="forecast" class="tab-btn flex flex-col items-center tab-inactive">
+            <i class="fa fa-line-chart text-sm mb-0.5"></i>
+            <span>FORECAST</span>
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Application JavaScript -->
+  <script src="/js/app.js"></script>
+</body>
+</html>
