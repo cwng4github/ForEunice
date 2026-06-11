@@ -1,0 +1,30 @@
+{
+  "name": "foreunice-baby-tracker",
+  "version": "1.0.0",
+  "description": "嬰兒食瞓痾小助手 - Baby Feeding, Sleep, and Diaper Tracking Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "baby",
+    "tracker",
+    "feeding",
+    "sleep",
+    "diaper"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
